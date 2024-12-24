@@ -5,7 +5,9 @@ let foundSeptember2024 = false;
 export const parseKakaoDate = (line: string): Date | null => {
   try {
     // Match Korean date format: "YYYY년 M월 D일 요일"
-    const match = line.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+    const match = line.match(
+      /(\d{4})[년.\s]\s*(\d{1,2})[월.\s]\s*(\d{1,2})[일.]?/
+    );
     if (!match) return null;
 
     const [_, year, month, day] = match;
