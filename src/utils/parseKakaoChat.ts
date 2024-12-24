@@ -25,8 +25,10 @@ export const parseKakaoChat = async (
       /(\d{4}[년.]\s?\d{1,2}[월.]\s?\d{1,2}[일.]?(?:\s(월요일|화요일|수요일|목요일|금요일|토요일|일요일))?)/;
     if (line.includes('---------------') || dateRegex.test(line)) {
       const dateMatch = line.match(dateRegex);
+      console.log('dateMatch', dateMatch);
       if (dateMatch) {
         const date = parseKakaoDate(dateMatch[0]); // Extract the full date string
+        console.log('date', date);
         if (date) {
           // 2024년 9월 이전 데이터면 스킵
           if (shouldSkipDate(date)) {
