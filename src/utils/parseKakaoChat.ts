@@ -21,7 +21,8 @@ export const parseKakaoChat = async (
     if (!line.trim() || line.includes('사진')) continue;
 
     // Check for date headers
-    if (line.includes('---------------')) {
+    const regex = /일\s(월요일|화요일|수요일|목요일|금요일|토요일|일요일)/g;
+    if (line.includes('---------------') || regex.test(line)) {
       const date = parseKakaoDate(line);
       if (date) {
         // 2024년 9월 이전 데이터면 스킵
