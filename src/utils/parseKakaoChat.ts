@@ -21,32 +21,19 @@ export const parseKakaoChat = async (
     if (!line.trim() || line.includes('사진')) continue;
 
     // Check for date headers
-    const regex = /일\s(월요일|화요일|수요일|목요일|금요일|토요일|일요일)/g;
-    if (line.includes('---------------')) {
-      const date = parseKakaoDate(line);
-      if (date) {
-        // 2024년 9월 이전 데이터면 스킵
-        if (shouldSkipDate(date)) {
-          currentDate = null;
-          continue;
-        }
-
-        if (isValidDateRange(date)) {
-          currentDate = date;
-        } else {
-          currentDate = null;
-        }
-      }
-      continue;
-    } else if (regex.test(line)) {
-      const dateMatch = line.match(regex);
+    const dateRegex =
+      /(\d{4}[년.]\s?\d{1,2}[월.]\s?\d{1,2}[일.]?(?:\s(월요일|화요일|수요일|목요일|금요일|토요일|일요일))?)/;
+    if (line.includes('---------------') || dateRegex.test(line)) {
+      const dateMatch = line.match(dateRegex);
       if (dateMatch) {
-        const date = parseKakaoDate(dateMatch[0]);
+        const date = parseKakaoDate(dateMatch[0]); // Extract the full date string
         if (date) {
+          // 2024년 9월 이전 데이터면 스킵
           if (shouldSkipDate(date)) {
             currentDate = null;
             continue;
           }
+
           if (isValidDateRange(date)) {
             currentDate = date;
           } else {
