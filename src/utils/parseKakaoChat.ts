@@ -22,7 +22,7 @@ export const parseKakaoChat = async (
 
     // Check for date headers
     const regex = /일\s(월요일|화요일|수요일|목요일|금요일|토요일|일요일)/g;
-    if (line.includes('---------------') || regex.test(line)) {
+    if (line.includes('---------------')) {
       const date = parseKakaoDate(line);
       if (date) {
         // 2024년 9월 이전 데이터면 스킵
@@ -38,6 +38,23 @@ export const parseKakaoChat = async (
         }
       }
       continue;
+    } else if (regex.test(line)) {
+      const dateMatch = line.match(regex);
+      if (dateMatch) {
+        const date = parseKakaoDate(dateMatch[0]);
+        if (date) {
+          if (shouldSkipDate(date)) {
+            currentDate = null;
+            continue;
+          }
+          if (isValidDateRange(date)) {
+            currentDate = date;
+          } else {
+            currentDate = null;
+          }
+        }
+        continue;
+      }
     }
 
     // Skip if no valid date is set
