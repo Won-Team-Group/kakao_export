@@ -1,11 +1,11 @@
 import { ChatMessage } from '../types';
 import {
   parseKakaoDate,
-  parseKakaoTime,
-  isValidDateRange,
-  shouldSkipDate,
+  // parseKakaoTime,
+  // isValidDateRange,
+  // shouldSkipDate,
 } from './date';
-import { extractUrlInfo } from './url';
+// import { extractUrlInfo } from './url';
 import { processLinkMessage } from '../services/linkService';
 
 export const parseKakaoChat = async (
@@ -13,146 +13,54 @@ export const parseKakaoChat = async (
 ): Promise<ChatMessage[]> => {
   const lines = fileContent.split('\n');
   const messages: ChatMessage[] = [];
-  // let currentMessage: Partial<ChatMessage> | null = null;
-  // let currentDate: Date | null = null;
-  let currentDate: Date | null = null;
-  let currentSender: string | null = null;
-  let currentTimestamp: Date | null = null;
-  let currentContent: string[] = []; // Buffer to collect multiline content
-
-  const processUrls = async (
-    content: string,
-    sender: string,
-    timestamp: Date
-  ) => {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = content.match(urlRegex);
-    if (!urls) return;
-
-    for (const url of urls) {
-      const urlInfo = extractUrlInfo(url);
-      const source = urlInfo?.source || sender;
-
-      try {
-        const message = await processLinkMessage(
-          content,
-          url,
-          source,
-          timestamp
-        );
-        messages.push(message);
-      } catch (error) {
-        console.error('Error processing link message:', error);
-      }
-    }
-  };
+  const processedUrls = new Set<string>(); // URL 중복 제거를 위한 Set
+  let shouldProcessMessages = false; // 2024년 10월 이후 메시지 처리 여부
 
   for (const line of lines) {
-    // Skip empty lines and photo messages
-    if (!line.trim() || line.includes('사진')) continue;
-    const regexDateLine = /\d{4}[년.]\s?\d{1,2}[월.]\s?\d{1,2}[일.]/;
-    // Check for date headers
-    if (line.includes('---------------')) {
-      const date = parseKakaoDate(line);
-      // console.log('First Format Date:', date);
-      if (date && isValidDateRange(date)) {
-        currentDate = date;
-        currentSender = null; // Reset sender
-        currentTimestamp = null; // Reset timestamp
-        currentContent = []; // Clear content buffer
-      } else {
-        currentDate = null;
-      }
+    if (!line.trim() || line.includes('사진') || line.includes('삭제된 메시지'))
       continue;
-    } else if (regexDateLine.test(line)) {
-      const dateMatch = line.match(regexDateLine);
-      console.log('secodn', dateMatch);
-      if (dateMatch) {
-        const date = parseKakaoDate(dateMatch[0]);
-        console.log('seconddate', date);
-        if (date && isValidDateRange(date)) {
-          console.log('currentDate', currentDate);
-          currentDate = date;
-          currentSender = null; // Reset sender
-          currentTimestamp = null; // Reset timestamp
-          currentContent = []; // Clear content buffer
-        } else {
-          currentDate = null;
-        }
-      }
-      continue;
-    }
-    if (!currentDate || !isValidDateRange(currentDate))
-      // Skip if no valid date is set
-      continue;
-    const firstFormatRegex =
-      /^\[(.*?)\]\s+\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s+(.*)/;
-    const firstMatch = line.match(firstFormatRegex);
-    if (firstMatch) {
-      const [_, sender, period, hour, minute, content] = firstMatch;
 
-      const timestamp = parseKakaoTime(
-        `${period} ${hour}:${minute}`,
-        currentDate
-      );
-      if (timestamp) {
-        // Process buffered content if exists
-        if (currentContent.length > 0 && currentSender && currentTimestamp) {
-          await processUrls(
-            currentContent.join('\n'),
-            currentSender,
-            currentTimestamp
-          );
+    // 날짜 체크
+    const dateMatch = line.match(/\d{4}[년.]\s*\d{1,2}[월.]\s*\d{1,2}[일.]/);
+    if (dateMatch) {
+      const date = parseKakaoDate(dateMatch[0]);
+      if (date) {
+        // 2024년 10월 이후 메시지 체크
+        if (date.getFullYear() === 2024 && date.getMonth() >= 9) {
+          // 10월은 index가 9
+          shouldProcessMessages = true;
+        } else if (shouldProcessMessages) {
+          // 이미 2024년 10월 이후 메시지를 찾았는데 이전 날짜가 나오면 처리 중단
+          break;
         }
-        // Update sender, timestamp, and reset content buffer
-        currentSender = sender;
-        currentTimestamp = timestamp;
-        currentContent = [content];
       }
       continue;
     }
 
-    const secondFormatRegex =
-      /(\d{4}[년.\s]+\d{1,2}[월.\s]+\d{1,2}[일.]?)\s+(오전|오후)\s*(\d{1,2}):(\d{2}),\s*(.*?):\s+(.*)/;
-    const secondMatch = line.match(secondFormatRegex);
-    console.log('secondMatch ', secondMatch);
-    if (secondMatch) {
-      const [_, dateStr, period, hour, minute, sender, content] = secondMatch;
-      const date = parseKakaoDate(dateStr);
-      console.log('seconddate', date);
-      if (date && isValidDateRange(date)) {
-        const timestamp = parseKakaoTime(`${period} ${hour}:${minute}`, date);
-        if (timestamp) {
-          // Process buffered content if exists
-          if (currentContent.length > 0 && currentSender && currentTimestamp) {
-            await processUrls(
-              currentContent.join('\n'),
-              currentSender,
-              currentTimestamp
-            );
-          }
-          // Update sender, timestamp, and reset content buffer
-          currentSender = sender;
-          currentTimestamp = timestamp;
-          currentContent = [content];
-        }
-      }
-      continue;
-    }
-    // Process standalone or multiline URLs
+    if (!shouldProcessMessages) continue;
+
+    // URL 추출
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = line.match(urlRegex);
-    if (urls && currentSender && currentTimestamp) {
-      currentContent.push(line.trim());
+    if (urls) {
+      for (const url of urls) {
+        if (!processedUrls.has(url)) {
+          processedUrls.add(url);
+          try {
+            const message = await processLinkMessage(
+              line,
+              url,
+              'URL', // 기본 소스값
+              new Date() // 현재 시간으로 대체
+            );
+            messages.push(message);
+          } catch (error) {
+            console.error('Error processing link message:', error);
+          }
+        }
+      }
     }
   }
-  // Process remaining buffered content
-  if (currentContent.length > 0 && currentSender && currentTimestamp) {
-    await processUrls(
-      currentContent.join('\n'),
-      currentSender,
-      currentTimestamp
-    );
-  }
+
   return messages;
 };
