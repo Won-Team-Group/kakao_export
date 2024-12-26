@@ -16,6 +16,8 @@ export const parseKakaoChat = async (
   // let currentMessage: Partial<ChatMessage> | null = null;
   // let currentDate: Date | null = null;
   let currentDate: Date | null = null;
+  let currentSender: string | null = null;
+  let currentTimestamp: Date | null = null;
 
   const processUrls = async (
     content: string,
@@ -54,6 +56,8 @@ export const parseKakaoChat = async (
       // console.log('First Format Date:', date);
       if (date && isValidDateRange(date)) {
         currentDate = date;
+        currentSender = null; // Reset sender
+        currentTimestamp = null; // Reset timestamp
       } else {
         currentDate = null;
       }
@@ -72,7 +76,9 @@ export const parseKakaoChat = async (
         currentDate
       );
       if (timestamp) {
-        await processUrls(content, sender, timestamp);
+        currentSender = sender; // Update sender
+        currentTimestamp = timestamp; // Update timestamp
+        await processUrls(content, currentSender, currentTimestamp);
       }
       continue;
     }
@@ -80,7 +86,7 @@ export const parseKakaoChat = async (
     const secondFormatRegex =
       /(\d{4}[년.\s]+\d{1,2}[월.\s]+\d{1,2}[일.]?)\s+(오전|오후)\s*(\d{1,2}):(\d{2}),\s*(.*?):\s+(.*)/;
     const secondMatch = line.match(secondFormatRegex);
-    // console.log('secondMatch ', secondMatch);
+    console.log('secondMatch ', secondMatch);
     if (secondMatch) {
       const [_, dateStr, period, hour, minute, sender, content] = secondMatch;
       const date = parseKakaoDate(dateStr);
@@ -88,7 +94,9 @@ export const parseKakaoChat = async (
       if (date && isValidDateRange(date)) {
         const timestamp = parseKakaoTime(`${period} ${hour}:${minute}`, date);
         if (timestamp) {
-          await processUrls(content, sender, timestamp);
+          currentSender = sender; // Update sender
+          currentTimestamp = timestamp; // Update timestamp
+          await processUrls(content, currentSender, currentTimestamp);
         }
       }
       continue;
