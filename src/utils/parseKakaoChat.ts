@@ -24,22 +24,22 @@ export const parseKakaoChat = async (
   ) => {
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = content.match(urlRegex);
-    if (urls) {
-      for (const url of urls) {
-        const urlInfo = extractUrlInfo(url);
-        const source = urlInfo?.source || sender;
+    if (!urls) return; // Skip if no URLs are found
 
-        try {
-          const message = await processLinkMessage(
-            content,
-            url,
-            source,
-            timestamp
-          );
-          messages.push(message);
-        } catch (error) {
-          console.error('Error processing link message:', error);
-        }
+    for (const url of urls) {
+      const urlInfo = extractUrlInfo(url);
+      const source = urlInfo?.source || sender;
+
+      try {
+        const message = await processLinkMessage(
+          content,
+          url,
+          source,
+          timestamp
+        );
+        messages.push(message);
+      } catch (error) {
+        console.error('Error processing link message:', error);
       }
     }
   };
@@ -52,22 +52,15 @@ export const parseKakaoChat = async (
     if (line.includes('---------------')) {
       const date = parseKakaoDate(line);
       // console.log('First Format Date:', date);
-      if (date) {
-        // 2024년 9월 이전 데이터면 스킵
-        if (shouldSkipDate(date)) {
-          currentDate = null;
-          continue;
-        }
-
-        if (isValidDateRange(date)) {
-          currentDate = date;
-        } else {
-          currentDate = null;
-        }
+      if (date && isValidDateRange(date)) {
+        currentDate = date;
+      } else {
+        currentDate = null;
       }
       continue;
     }
-
+    // Skip if no valid date is set
+    if (!currentDate || !isValidDateRange(currentDate)) continue;
     const firstFormatRegex =
       /^\[(.*?)\]\s+\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s+(.*)/;
     const firstMatch = line.match(firstFormatRegex);
@@ -101,12 +94,10 @@ export const parseKakaoChat = async (
       continue;
     }
     // Standalone or multiline URLs with additional text
-    if (currentDate && isValidDateRange(currentDate)) {
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      const urls = line.match(urlRegex);
-      if (urls) {
-        await processUrls(line, 'Unknown Sender', currentDate);
-      }
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = line.match(urlRegex);
+    if (urls) {
+      await processUrls(line, 'Unknown Sender', currentDate);
     }
   }
   return messages;
