@@ -50,7 +50,7 @@ export const parseKakaoChat = async (
   for (const line of lines) {
     // Skip empty lines and photo messages
     if (!line.trim() || line.includes('사진')) continue;
-
+    const regexDateLine = /\d{4}[년.]\s?\d{1,2}[월.]\s?\d{1,2}[일.]/;
     // Check for date headers
     if (line.includes('---------------')) {
       const date = parseKakaoDate(line);
@@ -64,9 +64,26 @@ export const parseKakaoChat = async (
         currentDate = null;
       }
       continue;
+    } else if (regexDateLine.test(line)) {
+      const dateMatch = line.match(regexDateLine);
+      console.log('secodn', dateMatch);
+      if (dateMatch) {
+        const date = parseKakaoDate(dateMatch[0]);
+        console.log('seconddate', date);
+        if (date && isValidDateRange(date)) {
+          currentDate = date;
+          currentSender = null; // Reset sender
+          currentTimestamp = null; // Reset timestamp
+          currentContent = []; // Clear content buffer
+        } else {
+          currentDate = null;
+        }
+      }
+      continue;
     }
-    // Skip if no valid date is set
-    if (!currentDate || !isValidDateRange(currentDate)) continue;
+    if (!currentDate || !isValidDateRange(currentDate))
+      // Skip if no valid date is set
+      continue;
     const firstFormatRegex =
       /^\[(.*?)\]\s+\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s+(.*)/;
     const firstMatch = line.match(firstFormatRegex);
