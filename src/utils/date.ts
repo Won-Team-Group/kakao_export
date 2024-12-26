@@ -73,11 +73,11 @@ export const parseKakaoTime = (
   }
 };
 
-export const isValidDateRange = (date: Date): Date | null => {
+export const isValidDateRange = (date: Date): boolean => {
   const startDate = new Date(2024, 10, 1); // 2024년 9월 1일
   const endDate = new Date(2024, 12, 31); // 2024년 12월 31일
 
   const result = isWithinInterval(date, { start: startDate, end: endDate });
-  const setDate = result ? date : null;
-  return setDate;
+  console.log('isvalid', { date, startDate, endDate, result });
+  return result;
 };
