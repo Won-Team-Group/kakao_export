@@ -49,104 +49,64 @@ export const parseKakaoChat = async (
 
   for (const line of lines) {
     // Skip empty lines and photo messages
-    if (!line.trim() || line.includes('사진')) continue;
-    const regexDateLine = /\d{4}[년.]\s?\d{1,2}[월.]\s?\d{1,2}[일.]/;
-    // Check for date headers
-    if (line.includes('---------------')) {
-      const date = parseKakaoDate(line);
-      // console.log('First Format Date:', date);
-      if (date && isValidDateRange(date)) {
-        currentDate = date;
-        currentSender = null; // Reset sender
-        currentTimestamp = null; // Reset timestamp
-        currentContent = []; // Clear content buffer
-      } else {
-        currentDate = null;
-      }
+    if (!line.trim() || line.includes('사진') || line.includes('삭제된 메시지'))
       continue;
-    } else if (regexDateLine.test(line)) {
-      const dateMatch = line.match(regexDateLine);
-      console.log('secodn', dateMatch);
+
+    // 날짜 형식 체크 (구분선이 있는 경우와 없는 경우 모두 처리)
+    if (line.includes('---------------') || regexDateLine.test(line)) {
+      const dateMatch = line.match(/\d{4}[년.]\s*\d{1,2}[월.]\s*\d{1,2}[일.]/);
       if (dateMatch) {
         const date = parseKakaoDate(dateMatch[0]);
-        console.log('seconddate', date);
         if (date && isValidDateRange(date)) {
-          console.log('currentDate', currentDate);
           currentDate = date;
-          currentSender = null; // Reset sender
-          currentTimestamp = null; // Reset timestamp
-          currentContent = []; // Clear content buffer
-        } else {
-          currentDate = null;
+          currentSender = null;
+          currentTimestamp = null;
+          currentContent = [];
         }
       }
       continue;
     }
-    if (!currentDate || !isValidDateRange(currentDate))
-      // Skip if no valid date is set
-      continue;
+
+    // 첫 번째 형식: [발신자] [시간] 내용
     const firstFormatRegex =
-      /^\[(.*?)\]\s+\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s+(.*)/;
-    const firstMatch = line.match(firstFormatRegex);
-    if (firstMatch) {
-      const [_, sender, period, hour, minute, content] = firstMatch;
+      /^\[(.*?)\]\s+\[(오전|오후)\s*(\d{1,2}):(\d{2})\]\s*(.*)/;
 
-      const timestamp = parseKakaoTime(
-        `${period} ${hour}:${minute}`,
-        currentDate
-      );
-      if (timestamp) {
-        // Process buffered content if exists
-        if (currentContent.length > 0 && currentSender && currentTimestamp) {
-          await processUrls(
-            currentContent.join('\n'),
-            currentSender,
-            currentTimestamp
-          );
-        }
-        // Update sender, timestamp, and reset content buffer
-        currentSender = sender;
-        currentTimestamp = timestamp;
-        currentContent = [content];
-      }
-      continue;
-    }
-
+    // 두 번째 형식: 날짜 시간, 발신자 : 내용
     const secondFormatRegex =
-      /(\d{4}[년.\s]+\d{1,2}[월.\s]+\d{1,2}[일.]?)\s+(오전|오후)\s*(\d{1,2}):(\d{2}),\s*(.*?):\s+(.*)/;
+      /(\d{4}[년.]\s*\d{1,2}[월.]\s*\d{1,2}[일.]?)\s*(오전|오후)\s*(\d{1,2}):(\d{2}),\s*(.*?)\s*:\s*(.*)/;
+
+    const firstMatch = line.match(firstFormatRegex);
     const secondMatch = line.match(secondFormatRegex);
-    console.log('secondMatch ', secondMatch);
-    if (secondMatch) {
-      const [_, dateStr, period, hour, minute, sender, content] = secondMatch;
-      const date = parseKakaoDate(dateStr);
-      console.log('seconddate', date);
-      if (date && isValidDateRange(date)) {
-        const timestamp = parseKakaoTime(`${period} ${hour}:${minute}`, date);
-        if (timestamp) {
-          // Process buffered content if exists
-          if (currentContent.length > 0 && currentSender && currentTimestamp) {
-            await processUrls(
-              currentContent.join('\n'),
-              currentSender,
-              currentTimestamp
-            );
-          }
-          // Update sender, timestamp, and reset content buffer
-          currentSender = sender;
-          currentTimestamp = timestamp;
-          currentContent = [content];
+
+    if (firstMatch || secondMatch) {
+      // 이전 메시지의 내용 처리
+      if (currentContent.length > 0 && currentSender && currentTimestamp) {
+        await processUrls(
+          currentContent.join('\n'),
+          currentSender,
+          currentTimestamp
+        );
+        currentContent = [];
+      }
+
+      if (firstMatch) {
+        const [_, sender, period, hour, minute, content] = firstMatch;
+        handleNewMessage(sender, period, hour, minute, content);
+      } else if (secondMatch) {
+        const [_, dateStr, period, hour, minute, sender, content] = secondMatch;
+        const date = parseKakaoDate(dateStr);
+        if (date && isValidDateRange(date)) {
+          currentDate = date;
+          handleNewMessage(sender, period, hour, minute, content);
         }
       }
-      continue;
-    }
-    // Process standalone or multiline URLs
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = line.match(urlRegex);
-    if (urls && currentSender && currentTimestamp) {
+    } else if (currentSender && currentTimestamp) {
+      // 멀티라인 메시지 처리
       currentContent.push(line.trim());
     }
   }
-  // Process remaining buffered content
+
+  // 마지막 메시지 처리
   if (currentContent.length > 0 && currentSender && currentTimestamp) {
     await processUrls(
       currentContent.join('\n'),
@@ -154,5 +114,27 @@ export const parseKakaoChat = async (
       currentTimestamp
     );
   }
+
   return messages;
+
+  // 헬퍼 함수
+  function handleNewMessage(
+    sender: string,
+    period: string,
+    hour: string,
+    minute: string,
+    content: string
+  ) {
+    if (currentDate) {
+      const timestamp = parseKakaoTime(
+        `${period} ${hour}:${minute}`,
+        currentDate
+      );
+      if (timestamp) {
+        currentSender = sender;
+        currentTimestamp = timestamp;
+        currentContent = [content];
+      }
+    }
+  }
 };
