@@ -18,6 +18,7 @@ export const parseKakaoChat = async (
   let currentDate: Date | null = null;
   let currentSender: string | null = null;
   let currentTimestamp: Date | null = null;
+  let currentContent: string[] = []; // Buffer to collect multiline content
 
   const processUrls = async (
     content: string,
@@ -58,6 +59,7 @@ export const parseKakaoChat = async (
         currentDate = date;
         currentSender = null; // Reset sender
         currentTimestamp = null; // Reset timestamp
+        currentContent = []; // Clear content buffer
       } else {
         currentDate = null;
       }
@@ -70,15 +72,24 @@ export const parseKakaoChat = async (
     const firstMatch = line.match(firstFormatRegex);
     if (firstMatch) {
       const [_, sender, period, hour, minute, content] = firstMatch;
-      if (!currentDate) continue;
+
       const timestamp = parseKakaoTime(
         `${period} ${hour}:${minute}`,
         currentDate
       );
       if (timestamp) {
-        currentSender = sender; // Update sender
-        currentTimestamp = timestamp; // Update timestamp
-        await processUrls(content, currentSender, currentTimestamp);
+        // Process buffered content if exists
+        if (currentContent.length > 0 && currentSender && currentTimestamp) {
+          await processUrls(
+            currentContent.join('\n'),
+            currentSender,
+            currentTimestamp
+          );
+        }
+        // Update sender, timestamp, and reset content buffer
+        currentSender = sender;
+        currentTimestamp = timestamp;
+        currentContent = [content];
       }
       continue;
     }
@@ -94,19 +105,36 @@ export const parseKakaoChat = async (
       if (date && isValidDateRange(date)) {
         const timestamp = parseKakaoTime(`${period} ${hour}:${minute}`, date);
         if (timestamp) {
-          currentSender = sender; // Update sender
-          currentTimestamp = timestamp; // Update timestamp
-          await processUrls(content, currentSender, currentTimestamp);
+          // Process buffered content if exists
+          if (currentContent.length > 0 && currentSender && currentTimestamp) {
+            await processUrls(
+              currentContent.join('\n'),
+              currentSender,
+              currentTimestamp
+            );
+          }
+          // Update sender, timestamp, and reset content buffer
+          currentSender = sender;
+          currentTimestamp = timestamp;
+          currentContent = [content];
         }
       }
       continue;
     }
-    // Standalone or multiline URLs with additional text
+    // Process standalone or multiline URLs
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     const urls = line.match(urlRegex);
-    if (urls) {
-      await processUrls(line, 'Unknown Sender', currentDate);
+    if (urls && currentSender && currentTimestamp) {
+      currentContent.push(line.trim());
     }
+  }
+  // Process remaining buffered content
+  if (currentContent.length > 0 && currentSender && currentTimestamp) {
+    await processUrls(
+      currentContent.join('\n'),
+      currentSender,
+      currentTimestamp
+    );
   }
   return messages;
 };
