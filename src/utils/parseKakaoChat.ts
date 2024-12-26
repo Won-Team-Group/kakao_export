@@ -51,7 +51,7 @@ export const parseKakaoChat = async (
     // Check for date headers
     if (line.includes('---------------')) {
       const date = parseKakaoDate(line);
-      console.log('First Format Date:', date);
+      // console.log('First Format Date:', date);
       if (date) {
         // 2024년 9월 이전 데이터면 스킵
         if (shouldSkipDate(date)) {
@@ -87,7 +87,7 @@ export const parseKakaoChat = async (
     const secondFormatRegex =
       /(\d{4}[년.\s]+\d{1,2}[월.\s]+\d{1,2}[일.]?)\s+(오전|오후)\s*(\d{1,2}):(\d{2}),\s*(.*?):\s+(.*)/;
     const secondMatch = line.match(secondFormatRegex);
-    console.log('secondMatch ', secondMatch);
+    // console.log('secondMatch ', secondMatch);
     if (secondMatch) {
       const [_, dateStr, period, hour, minute, sender, content] = secondMatch;
       const date = parseKakaoDate(dateStr);
@@ -99,6 +99,14 @@ export const parseKakaoChat = async (
         }
       }
       continue;
+    }
+    // Standalone or multiline URLs with additional text
+    if (currentDate && isValidDateRange(currentDate)) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urls = line.match(urlRegex);
+      if (urls) {
+        await processUrls(line, 'Unknown Sender', currentDate);
+      }
     }
   }
   return messages;
