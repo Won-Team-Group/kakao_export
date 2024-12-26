@@ -8,7 +8,10 @@ export const parseKakaoDate = (line: string): Date | null => {
     const match = line.match(
       /(\d{4})[년.\s]\s*(\d{1,2})[월.\s]\s*(\d{1,2})[일.]?/
     );
-    if (!match) return null;
+    if (!match) {
+      console.log('No match for line:', line);
+      return null;
+    }
 
     const [_, year, month, day] = match;
     const date = new Date(
@@ -18,9 +21,10 @@ export const parseKakaoDate = (line: string): Date | null => {
     );
 
     // 2024년 9월을 찾으면 플래그 설정
-    if (year === '2024' && month === '10') {
+    if (year === '2024' && ['10', '11', '12'].includes(month)) {
       foundSeptember2024 = true;
     }
+    console.log('parseKakaoDate:', { line, year, month, day, date });
 
     // Validate the date
     return isNaN(date.getTime()) ? null : date;
@@ -35,7 +39,9 @@ export const shouldSkipDate = (date: Date): boolean => {
   }
 
   const startDate = new Date(2024, 10, 1); // 2024년 9월 1일
-  return date < startDate;
+  const result = date < startDate;
+  console.log('shouldSkip', { date, startDate, result });
+  return result;
 };
 
 export const parseKakaoTime = (
@@ -71,5 +77,7 @@ export const isValidDateRange = (date: Date): boolean => {
   const startDate = new Date(2024, 10, 1); // 2024년 9월 1일
   const endDate = new Date(2024, 12, 31); // 2024년 12월 31일
 
-  return isWithinInterval(date, { start: startDate, end: endDate });
+  const result = isWithinInterval(date, { start: startDate, end: endDate });
+  console.log('isvalid', { date, startDate, endDate, result });
+  return result;
 };
