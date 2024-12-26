@@ -45,12 +45,14 @@ export const parseKakaoChat = async (
         continue;
       }
     }
+    console.log('currentDate', currentDate);
 
     // Skip if no valid date is set
     if (!currentDate || !isValidDateRange(currentDate)) continue;
 
     // Check for message with timestamp
     const timeMatch = line.match(/(오전|오후)\s*\d{1,2}:\d{2}/);
+    console.log('timeMatch', timeMatch);
     if (timeMatch) {
       // Save previous message if exists
       if (currentMessage?.content) {
@@ -82,6 +84,7 @@ export const parseKakaoChat = async (
       currentMessage.content += '\n' + line.trim();
     }
   }
+  console.log('currentMessage', currentMessage);
 
   // Add the last message if exists
   if (currentMessage?.content) {
