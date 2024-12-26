@@ -71,6 +71,7 @@ export const parseKakaoChat = async (
         const date = parseKakaoDate(dateMatch[0]);
         console.log('seconddate', date);
         if (date && isValidDateRange(date)) {
+          console.log('currentDate', currentDate);
           currentDate = date;
           currentSender = null; // Reset sender
           currentTimestamp = null; // Reset timestamp
