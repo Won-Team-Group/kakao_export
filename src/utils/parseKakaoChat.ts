@@ -53,7 +53,11 @@ export const parseKakaoChat = async (
               'URL', // 기본 소스값
               new Date() // 현재 시간으로 대체
             );
-            messages.push(message);
+            if (message) {
+              messages.push(message);
+            } else {
+              console.log('Message skipped due to invalid title');
+            }
           } catch (error) {
             console.error('Error processing link message:', error);
           }

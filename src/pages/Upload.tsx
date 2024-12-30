@@ -6,6 +6,7 @@ import { parseKakaoChat } from '../utils/parseKakaoChat';
 // import { generateTitle, generateTags } from '../utils/openai';
 import { ChatMessage } from '../types';
 import { sampleMessages } from '../data/sampleData';
+import { WaitlistBanner } from '../components/WaitlistBanner';
 
 export const Upload: React.FC = () => {
   const navigate = useNavigate();
@@ -78,13 +79,17 @@ export const Upload: React.FC = () => {
           <FileUpload onFileSelect={handleFileSelect} />
         )}
 
-        <div className="mt-8 text-center text-sm text-gray-500">
-          {/* <p>카카오톡 채팅방에서 내보내기한 .txt 파일만 지원됩니다.</p> */}
-          <p>
+        {/* <div className="mt-7 text-center text-sm text-gray-500"> */}
+        {/* <p>카카오톡 채팅방에서 내보내기한 .txt 파일만 지원됩니다.</p> */}
+        {/* <p>
             용량이 크면 처리하는 속도가 느려져 2024년 11월~12월 채팅 내용만
             잘라서 올려주세요.{' '}
           </p>
+        </div> */}
+        <div className="mt-10">
+          <WaitlistBanner />
         </div>
+
         <div className="flex justify-center items-center p-4 b-white-100">
           <img
             src="/images/screenshot.png" // 실제 이미지 경로

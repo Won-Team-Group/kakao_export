@@ -29,7 +29,7 @@ export const processLinkMessage = async (
   url: string,
   source: string,
   timestamp: Date
-): Promise<ChatMessage> => {
+): Promise<ChatMessage | null> => {
   try {
     const metadata = await fetchMetadataWithRetry(url);
     const urlInfo = extractUrlInfo(url);
@@ -40,6 +40,19 @@ export const processLinkMessage = async (
     // const finalSource = urlInfo?.source || source || new URL(url).hostname;
     // title = generateTitle(title);
     // Generate tags from available content
+
+    // Skip if title is '제목 없음' or '403 Forbidden'
+    if (
+      title === '제목 없음' ||
+      title === '403 Forbidden' ||
+      title === 'Resource Not Found' ||
+      title === '네이버 지도' ||
+      title === 'cafe.naver.com' ||
+      title === 'us04web.zoom.us'
+    ) {
+      console.log(`Skipping link due to invalid title: ${title}`);
+      return null;
+    }
     const contentForTags = [
       title,
       metadata?.description,
@@ -58,7 +71,7 @@ export const processLinkMessage = async (
       content,
       url,
       source: finalSource,
-      title: metadata?.title || '제목 없음',
+      title: metadata?.title,
       description: metadata?.description || '',
       thumbnail: metadata?.thumbnail || '',
       tags: tags.length > 0 ? tags : ['기타'],

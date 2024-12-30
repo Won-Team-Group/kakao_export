@@ -38,7 +38,9 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect }) => {
         <p className="text-lg font-medium text-gray-700">
           카카오톡 채팅 파일을 드래그하거나 클릭하여 업로드하세요
         </p>
-        <p className="text-sm text-gray-500">.txt 파일만 지원됩니다</p>
+        <p className="text-sm text-gray-500">
+          2024년 11월~12월 채팅 내용만 잘라서 .txt 파일로 올려주세요
+        </p>
         <input
           type="file"
           accept=".txt"
