@@ -1,7 +1,7 @@
 import React from 'react';
 import { ExternalLink, Tag } from 'lucide-react';
-import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
+// import { format } from 'date-fns';
+// import { ko } from 'date-fns/locale';
 import { ChatMessage } from '../types';
 
 interface ChatCardProps {
@@ -43,9 +43,9 @@ export const ChatCard: React.FC<ChatCardProps> = ({ message }) => {
           </div>
 
           <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-            <time dateTime={message.createdAt.toISOString()}>
+            {/* <time dateTime={message.createdAt.toISOString()}>
               {format(message.createdAt, 'PPP', { locale: ko })}
-            </time>
+            </time> */}
             {message.source && (
               <>
                 <span>•</span>

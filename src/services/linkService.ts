@@ -36,6 +36,7 @@ export const processLinkMessage = async (
 
     // Fallback chain for title
     const title = metadata?.title || urlInfo?.title || source || '제목 없음';
+    const finalSource = urlInfo?.source || source || new URL(url).hostname;
     // const finalSource = urlInfo?.source || source || new URL(url).hostname;
     // title = generateTitle(title);
     // Generate tags from available content
@@ -56,7 +57,7 @@ export const processLinkMessage = async (
       createdAt: timestamp,
       content,
       url,
-      source,
+      source: finalSource,
       title: metadata?.title || '제목 없음',
       description: metadata?.description || '',
       thumbnail: metadata?.thumbnail || '',

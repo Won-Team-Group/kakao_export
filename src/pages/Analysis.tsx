@@ -4,14 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { WaitlistBanner } from '../components/WaitlistBanner';
 import { TagList } from '../components/TagList';
 import { ChatCard } from '../components/ChatCard';
-// import { generateTagSummary } from '../utils/openai';
 import { ChatMessage } from '../types';
+// import { generateTagSummary } from '../utils/openai';
 import { removeDuplicateLinks } from '../utils/linkProcessing';
 
 export const Analysis: React.FC = () => {
   const navigate = useNavigate();
   const [selectedTag, setSelectedTag] = useState('all');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isSample, setSample] = useState(false);
   // const [tagSummary, setTagSummary] = useState<string>('');
   // const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -19,7 +20,14 @@ export const Analysis: React.FC = () => {
   useEffect(() => {
     try {
       const storedMessages = sessionStorage.getItem('chatMessages');
+      const sampleMessages = sessionStorage.getItem('sampleMessages');
       if (!storedMessages) {
+        if (sampleMessages) {
+          setMessages(JSON.parse(sampleMessages));
+          setSample(true);
+          setError('');
+          return;
+        }
         navigate('/');
         return;
       }
@@ -50,7 +58,7 @@ export const Analysis: React.FC = () => {
   const tagStats = useMemo(() => {
     const stats = new Map<string, number>();
     messages.forEach((message) => {
-      message.tags.forEach((tag) => {
+      message.tags.forEach((tag: string) => {
         stats.set(tag, (stats.get(tag) || 0) + 1);
       });
     });
@@ -86,7 +94,20 @@ export const Analysis: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
             <MessageSquareText className="w-10 h-10 text-blue-500" />
-            <h1 className="text-3xl font-bold text-gray-900">채팅 내용 분석</h1>
+            {isSample ? (
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  샘플 데이터 분석
+                </h1>
+                <p className="text-gray-600">
+                  처리할 데이터가 없어서 샘플로 보여드려요!
+                </p>
+              </div>
+            ) : (
+              <h1 className="text-3xl font-bold text-gray-900">
+                채팅 내용 분석
+              </h1>
+            )}
           </div>
         </div>
 
