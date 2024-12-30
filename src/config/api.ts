@@ -5,8 +5,8 @@ export const API_CONFIG = {
     metadata: '/api/metadata',
     openai: {
       generateTags: '/api/openai/generate-tags',
-      generateTitle: '/api/openai/generate-title',
-      generateSummary: '/api/openai/generate-summary',
+      // generateTitle: '/api/openai/generate-title',
+      // generateSummary: '/api/openai/generate-summary',
     },
   },
 };
